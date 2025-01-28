@@ -1,39 +1,111 @@
 import base64
 import io
 import os
-from tkinter import Tk, Button, Canvas, NW, CENTER, Label, Text, END
+import re
+from tkinter import Tk, Button, CENTER, Label, Text, END
 
 import matplotlib.pyplot as plt
 import pandas as pd
-import os
-import re
-
-import matplotlib.pyplot as plt
+from IPython import InteractiveShell
 from PIL import ImageTk, Image
 
+from IPython.display import Math
+import IPython
 
-# import matplotlib as mpl
-# mpl.rcParams['text.usetex'] = True
-# mpl.rcParams['text.latex.preamble'] = [r'\usepackage{amsmath}'] #for \text command
+from IPython.testing.globalipapp import get_ipython
+from svg2png import svg2png
+
+shell = InteractiveShell.instance()
+
+tags_to_remove = [
+    r'\mathrm',
+    r'\text',
+    r'\textbf',
+    r'\quad',
+    r'\qquad',
+    r'\textstyle',
+    r'\displaystyle',
+    r'<|im_end|>'
+]
+
+
+def remove_tag(s: str, tag: str) -> str:
+    new_str = []
+
+    i = 0
+    while i < len(s):
+        if s[i:i + len(tag)] == tag:
+            i += len(tag) + 1  # +1 because of `{` after tag
+            bracers_opened = 1
+            while i < len(s) and (bracers_opened > 0 or s[i] != '}'):
+                if s[i] == '{':
+                    bracers_opened += 1
+                if s[i] == '}':
+                    bracers_opened -= 1
+                    if bracers_opened == 0:
+                        # remove last close bracket
+                        continue
+                new_str.append(s[i])
+                i += 1
+
+        if i >= len(s):
+            break
+        new_str.append(s[i])
+        i += 1
+    return ''.join(new_str)
+
+
+def remove_custom_bracers(v):
+    v = v.replace('\left(', '(')
+    v = v.replace('\left[', '(')
+    v = v.replace('\left{', '(')
+    v = v.replace('\right)', '(')
+    v = v.replace('\right]', ')')
+    v = v.replace('\right}', ')')
+    return v
+
+
+def remove_extra_bracers_in_bottom_indices(v):
+    pattern = re.compile('_(\{([^\s\\\}]*)\})?')
+    v = pattern.sub('\\1', v)
+    return v
+
+
+# regexps = [re.compile(tag + '\s*(\{([^\}]*)\})?') for tag in tags_to_remove]
+
+def filter_out_tags(v):
+    for tag in tags_to_remove:
+        v = remove_tag(v, tag)
+        v = remove_custom_bracers(v)
+        v = remove_extra_bracers_in_bottom_indices(v)
+    return v
 
 
 def render_latex(txt):
-    fig = plt.figure(figsize=(14, 3))
-    fig.text(0, 0.6, txt.replace('$$', '$').replace('\\text', '\mathrm'), fontsize=20)
+    # fig = plt.figure(figsize=(14, 3))
+    # # fig.text(0, 0.6, txt.replace('$$', '$').replace('\\text', '\mathrm'), fontsize=20)
+    # fig.Math(txt)
+    #
+    # # hide axes
+    # gca = plt.gca()
+    # gca.axes.axis('off')
+    # # gca.axes.get_yaxis().set_visible(False)
+    #
+    # # Save PNG to memory buffer as BytesIO
+    # from io import BytesIO
+    # buffer = BytesIO()
+    #
+    # plt.savefig(buffer, format='JPEG')
+    # plt.close()
 
-    # hide axes
-    gca = plt.gca()
-    gca.axes.axis('off')
-    # gca.axes.get_yaxis().set_visible(False)
+    svg_data = shell.display_formatter.format(Math(txt), "image/svg+xml")[0]
 
-    # Save PNG to memory buffer as BytesIO
-    from io import BytesIO
-    buffer = BytesIO()
+    png_data = svg2png(svg_data)
 
-    plt.savefig(buffer, format='JPEG')
-    plt.close()
+    # Загружаем в PIL
+    img = Image.open(io.BytesIO(png_data))
 
-    return Image.open(buffer)
+    return img#Image.open(buffer)
 
 
 def to_image(base64_str: str):
@@ -43,7 +115,6 @@ def to_image(base64_str: str):
 INPUT_DIR = 'data_learn_output'
 OUTPUT_DIR = 'formula_marker_output'
 REMOVED_LABEL = '--REMOVED--'
-
 
 if __name__ == '__main__':
 
@@ -73,6 +144,7 @@ if __name__ == '__main__':
             df_processed = pd.read_csv(output_file)
             df_original = dfs[k]
             dfs[k] = df_original[~df_original['image'].isin(set(df_processed['image']))]
+
 
     def next_data() -> tuple[Image, Image, str]:
         global new_df, new_dfs
@@ -107,6 +179,7 @@ if __name__ == '__main__':
                 info_label.config(text=f'{i} / {df_len - 1}')
                 yield image_text, image, prediction_image, prediction_text
 
+
     root = Tk()
     root.geometry('1600x1000')
     root.title('Docs-processing создание датасета :)')  # заголовок
@@ -125,6 +198,7 @@ if __name__ == '__main__':
 
     image_text, image, prediction_image, prediction_text = None, None, None, None
 
+
     def go_to_next_entry():
         global image_text, image, prediction_image, prediction_text
         image_text, image, prediction_image, prediction_text = next(data_it)
@@ -142,6 +216,7 @@ if __name__ == '__main__':
         canvas_2['image'] = tk_image2
         canvas_2.image = tk_image2
         canvas_2.place(x=100, y=220)
+
 
     def clicked_redraw_latex():
         prediction_text = text_box.get('1.0', END)
@@ -165,9 +240,11 @@ if __name__ == '__main__':
         new_df.append((image_text, corrected_text))
         go_to_next_entry()
 
+
     def clicked_no():
         new_df.append((image_text, REMOVED_LABEL))
         go_to_next_entry()
+
 
     def clicked_save():
         os.makedirs(OUTPUT_DIR, exist_ok=True)
