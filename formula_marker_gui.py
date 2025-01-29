@@ -5,22 +5,9 @@ import os
 import re
 from tkinter import Tk, Button, CENTER, Label, Text, END
 
-# import matplotlib.pyplot as plt
 import pandas as pd
-from IPython import InteractiveShell
 from PIL import ImageTk, Image
-
-from IPython.display import Math
-import IPython
-
-from playwright.async_api import async_playwright
 from playwright.sync_api import sync_playwright
-
-# from IPython.testing.globalipapp import get_ipython
-from svg2png import svg2png
-
-shell = InteractiveShell.instance()
-# shell.enable_matplotlib(gui='inline')
 
 tags_to_remove = [
     r'\mathrm',

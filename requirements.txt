@@ -1,7 +1,6 @@
 pillow
 matplotlib
 pandas
-ipython
 pytest
 svg2png
 playwright
