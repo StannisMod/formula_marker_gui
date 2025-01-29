@@ -57,8 +57,8 @@ def remove_custom_bracers(v):
 
 
 def remove_extra_bracers_in_bottom_indices(v):
-    pattern = re.compile('_(\{([^\s\\\}]*)\})?')
-    v = pattern.sub('\\1', v)
+    pattern = re.compile('_\{([^\s\\\}])?\}')
+    v = pattern.sub('_\\1', v)
     return v
 
 
@@ -151,7 +151,7 @@ if __name__ == '__main__':
         for k in dfs:
             df = dfs[k]
             df = df[df['prediction'].apply(lambda x: '$' in x)]
-            df.loc[:, 'prediction'] = df['prediction'].apply(lambda x: re.sub('^[^\$]*\$', '$', x))
+            df.loc[:, 'prediction'] = df['prediction'].apply(lambda x: filter_out_tags(re.sub('^[^\$]*\$', '$', x)))
             df = df.reset_index().drop('index', axis=1)
             dfs[k] = df
 
