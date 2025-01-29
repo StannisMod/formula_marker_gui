@@ -311,9 +311,6 @@ if __name__ == '__main__':
 
         root.mainloop()
 
-        async def close():
-            browser.close()
-
-        asyncio.run(close())
+        browser.close()
 
         # save results
