@@ -28,13 +28,14 @@ def remove_tag(s: str, tag: str) -> str:
         if s[i:i + len(tag)] == tag:
             i += len(tag) + 1  # +1 because of `{` after tag
             bracers_opened = 1
-            while i < len(s) and (bracers_opened > 0 or s[i] != '}'):
+            while i < len(s) and (bracers_opened > 0):
                 if s[i] == '{':
                     bracers_opened += 1
                 if s[i] == '}':
                     bracers_opened -= 1
                     if bracers_opened == 0:
                         # remove last close bracket
+                        i += 1
                         continue
                 new_str.append(s[i])
                 i += 1
@@ -67,8 +68,8 @@ def remove_extra_bracers_in_bottom_indices(v):
 def filter_out_tags(v):
     for tag in tags_to_remove:
         v = remove_tag(v, tag)
-        v = remove_custom_bracers(v)
-        v = remove_extra_bracers_in_bottom_indices(v)
+    v = remove_custom_bracers(v)
+    v = remove_extra_bracers_in_bottom_indices(v)
     return v
 
 
